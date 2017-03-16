@@ -3,6 +3,7 @@ package tides
 import (
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"golang.org/x/net/html/charset"
@@ -16,10 +17,19 @@ const (
 )
 
 type ObservationHolder struct {
+	Locations map[string]*Location
+}
+
+type Location struct {
 	XMLName     xml.Name       `xml:"datainfo"`
 	Items       []*Observation `xml:"data>item"`
 	State       string         `xml:"state"`
 	StationType string         `xml:"stationtype"`
+	StationID   string         `xml:"stationid"`
+}
+
+func (l Location) String() string {
+	return fmt.Sprintf("Location: id=%s, state=%s, type=%s", l.StationID, l.State, l.StationType)
 }
 
 type Observation struct {
@@ -31,41 +41,61 @@ type Observation struct {
 	Direction string
 }
 
+func (o Observation) String() string {
+	return fmt.Sprintf("date=%v, time=%v, tideHeightFt=%0.1f, highOrLow=%s, dir=%s", o.Date, o.Time, o.Feet, o.HighOrLow, o.Direction)
+}
+
 func (holder *ObservationHolder) LoadDataStore(dir string) error {
-	xmlFile, err := os.Open(dir)
+	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return err
+	}
+
+	for _, file := range files {
+		loc, err := loadPredictionFile(dir + "/" + file.Name())
+		if err != nil {
+			return err
+		}
+		holder.Locations[loc.StationID] = loc
+	}
+	return nil
+}
+
+func loadPredictionFile(file string) (*Location, error) {
+	xmlFile, err := os.Open(file)
+	if err != nil {
+		return nil, err
 	}
 	defer xmlFile.Close()
 
 	// Since our XML is encoded in ISO-8859-1, we need to decode it
 	decoder := xml.NewDecoder(xmlFile)
 	decoder.CharsetReader = charset.NewReaderLabel
-	err = decoder.Decode(&holder)
 
+	var loc Location
+
+	err = decoder.Decode(&loc)
 	if err != nil {
 		fmt.Printf("Unable to unmarshal correctly: %v\n", err)
-		return err
+		return nil, err
 	}
 
-	err = holder.inferDirection()
+	err = loc.inferDirection()
 	if err != nil {
 		fmt.Printf("Unable to infer tide directionality: %v\n", err)
-		return err
+		return nil, err
 	}
-	return nil
+	return &loc, nil
 }
 
-func (holder *ObservationHolder) inferDirection() error {
+func (loc *Location) inferDirection() error {
 
 	// lag over observations to see if rising or falling
-	for i := range holder.Items {
-		if i == 0 {
-			holder.Items[i].HighOrLow = "???"
-		} else if holder.Items[i-1].HighOrLow == "H" {
-			holder.Items[i].Direction = "FALLING"
+	for i := range loc.Items {
+		if loc.Items[i].HighOrLow == "H" {
+			loc.Items[i].Direction = "FALLING"
 		} else {
-			holder.Items[i].Direction = "RISING"
+			loc.Items[i].Direction = "RISING"
 		}
 	}
 	return nil
