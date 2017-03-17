@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"sort"
+
 	"golang.org/x/net/html/charset"
 )
 
@@ -80,17 +82,7 @@ func loadPredictionFile(file string) (*Location, error) {
 		return nil, err
 	}
 
-	err = loc.inferDirection()
-	if err != nil {
-		fmt.Printf("Unable to infer tide directionality: %v\n", err)
-		return nil, err
-	}
-	return &loc, nil
-}
-
-func (loc *Location) inferDirection() error {
-
-	// lag over observations to see if rising or falling
+	// Now loop over to decide whether the tide will be rising or falling until the next observation
 	for i := range loc.Items {
 		if loc.Items[i].HighOrLow == "H" {
 			loc.Items[i].Direction = "FALLING"
@@ -98,5 +90,20 @@ func (loc *Location) inferDirection() error {
 			loc.Items[i].Direction = "RISING"
 		}
 	}
+	return &loc, nil
+}
+
+// find the closest prediction to the provided date
+// - this is just using binary search until we move to a smarter data structure
+func (loc *Location) FindNearestPrediction(date string) *Observation {
+
+	i := sort.Search(len(loc.Items), func(i int) bool {
+		return loc.Items[i].Date >= date
+	})
+
+	if i < len(loc.Items) && loc.Items[i].Date == date {
+		return loc.Items[i]
+	}
+
 	return nil
 }

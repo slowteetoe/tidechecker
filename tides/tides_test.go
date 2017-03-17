@@ -40,3 +40,23 @@ func TestLoadingGoodFile(t *testing.T) {
 		t.Errorf("Expected station type %s but was: %s", expectedStationType, location.StationType)
 	}
 }
+
+func TestNearestPrediction(t *testing.T) {
+	holder := tides.ObservationHolder{Locations: make(map[string]*tides.Location)}
+	err := holder.LoadDataStore("../data")
+	if err != nil {
+		t.Errorf("Should not have errored: %v\n", err)
+	}
+	location := holder.Locations["9410230"]
+	if location == nil {
+		t.Fail()
+	}
+	obs := location.FindNearestPrediction("2016/06/02")
+	if obs != nil {
+		t.Errorf("Found an observation, but this date was before the earliest prediction: %v", obs)
+	}
+	obs = location.FindNearestPrediction("2017/07/01")
+	if obs == nil {
+		t.Errorf("Should have found an observation")
+	}
+}
