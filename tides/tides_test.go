@@ -6,7 +6,7 @@ import (
 	"github.com/slowteetoe/tidechecker/tides"
 )
 
-// TODO create a smaller, testing-only file
+// TODO create a smaller, testing-only data file
 
 func TestLoadingNonexistentFile(t *testing.T) {
 	holder := tides.ObservationHolder{}

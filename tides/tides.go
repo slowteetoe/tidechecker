@@ -11,30 +11,33 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
-type TideLevel int
+type tideLevel int
 
 const (
-	LOW TideLevel = iota
-	HIGH
+	low tideLevel = iota
+	high
 )
 
+// ObservationHolder maps a station id to the location
 type ObservationHolder struct {
 	Locations map[string]*Location
 }
 
+// Location holds station information and the tide predictions
 type Location struct {
-	XMLName     xml.Name       `xml:"datainfo"`
-	Items       []*Observation `xml:"data>item"`
-	State       string         `xml:"state"`
-	StationType string         `xml:"stationtype"`
-	StationID   string         `xml:"stationid"`
+	XMLName     xml.Name      `xml:"datainfo"`
+	Items       []*Prediction `xml:"data>item"`
+	State       string        `xml:"state"`
+	StationType string        `xml:"stationtype"`
+	StationID   string        `xml:"stationid"`
 }
 
-func (l Location) String() string {
-	return fmt.Sprintf("Location: id=%s, state=%s, type=%s", l.StationID, l.State, l.StationType)
+func (loc Location) String() string {
+	return fmt.Sprintf("Location: id=%s, state=%s, type=%s", loc.StationID, loc.State, loc.StationType)
 }
 
-type Observation struct {
+// Prediction is provided by the NOAA
+type Prediction struct {
 	Level     string
 	HighOrLow string  `xml:"highlow"`
 	Date      string  `xml:"date"`
@@ -43,10 +46,11 @@ type Observation struct {
 	Direction string
 }
 
-func (o Observation) String() string {
-	return fmt.Sprintf("date=%v, time=%v, tideHeightFt=%0.1f, highOrLow=%s, dir=%s", o.Date, o.Time, o.Feet, o.HighOrLow, o.Direction)
+func (p Prediction) String() string {
+	return fmt.Sprintf("date=%v, time=%v, tideHeightFt=%0.1f, highOrLow=%s, dir=%s", p.Date, p.Time, p.Feet, p.HighOrLow, p.Direction)
 }
 
+// LoadDataStore loads all prediction files in the given directory
 func (holder *ObservationHolder) LoadDataStore(dir string) error {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -93,9 +97,8 @@ func loadPredictionFile(file string) (*Location, error) {
 	return &loc, nil
 }
 
-// find the closest prediction to the provided date
-// - this is just using binary search until we move to a smarter data structure
-func (loc *Location) FindNearestPrediction(date string) *Observation {
+// FindNearestPrediction finds the closest prediction to the provided date, using binary search until we move to a smarter data structure
+func (loc *Location) FindNearestPrediction(date string) *Prediction {
 
 	i := sort.Search(len(loc.Items), func(i int) bool {
 		return loc.Items[i].Date >= date
