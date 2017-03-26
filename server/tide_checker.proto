@@ -1,0 +1,14 @@
+syntax = "proto3";
+package server;
+
+service TideChecker {
+    rpc GetPrediction(LocationRequest) returns (PredictionResponse);
+}
+
+message LocationRequest {
+     string stationId = 1;
+}
+
+message PredictionResponse {
+    
+}
