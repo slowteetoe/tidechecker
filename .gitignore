@@ -1,4 +1,5 @@
 tidecheck
+tidechecker
 # I don't *think* we want to check in the generated pb go code...
 *.pb.go
 # Compiled Object files, Static and Dynamic libs (Shared Objects)

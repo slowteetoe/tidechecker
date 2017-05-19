@@ -2,13 +2,18 @@ syntax = "proto3";
 package server;
 
 service TideChecker {
-    rpc GetPrediction(LocationRequest) returns (PredictionResponse);
+    rpc GetPrediction(PredictionRequest) returns (PredictionResponse);
 }
 
-message LocationRequest {
-     string stationId = 1;
+message PredictionRequest {
+     string zipcode = 1;
 }
 
+// it will be LOW tide at 3:21pm TODAY
 message PredictionResponse {
-    
+    string direction = 1;
+    string time = 2;
+    string date = 3;
 }
+
+// from the server directory, protoc -I . tide_checker.proto --go_out=plugins=grpc:.

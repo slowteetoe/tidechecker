@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -27,23 +29,37 @@ type tideCheckerServer struct {
 }
 
 // GetPrediction returns the nearest tide prediction for the station id requested (use 9410230) on 20170328
-func (s *tideCheckerServer) GetPrediction(ctx context.Context, req *pb.LocationRequest) (*pb.PredictionResponse, error) {
+func (s *tideCheckerServer) GetPrediction(ctx context.Context, req *pb.PredictionRequest) (*pb.PredictionResponse, error) {
 
 	resp := &pb.PredictionResponse{}
 
-	if req.StationId == "" {
-		fmt.Println("no station requested")
+	if req.Zipcode == "" {
+		fmt.Println("no zipcode requested")
 		return resp, nil
 	}
 
-	loc, ok := s.data.Locations[req.StationId]
+	// FIXME need something that maps known zipcodes to stations, somehow
+	// stationID, err := loc.FromZipcode(req.Zipcode)
+
+	// if err != nil {
+	// 	fmt.Printf("no mapping for %s, %v\n", req.Zipcode, err)
+	// }
+
+	stationID := "9410230"
+
+	log.Printf("%s is station %s", req.Zipcode, stationID)
+	loc, ok := s.data.Locations[stationID]
 
 	if !ok {
-		fmt.Printf("unable to locate station[%s]", req.StationId)
+		fmt.Printf("unable to locate station[%s]", stationID)
 		return resp, nil
 	}
 
-	pred := loc.FindNearestPrediction("2017/03/28")
+	t := time.Now().Format("2006/01/02")
+
+	fmt.Printf("Attempting to find tides for %s\n", t)
+
+	pred := loc.FindNearestPrediction(t)
 
 	fmt.Printf("%v\n", pred)
 
